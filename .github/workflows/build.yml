@@ -9,7 +9,8 @@
 #
 # Secrets (Settings → Secrets and variables → Actions → New repository secret):
 #   APP_REPO_TOKEN   required: a fine-grained GitHub token with "Contents: Read-only" on jason-ario/InterfaceEverythingApp
-#   Mac signing, optional (copy them over from the app repo if you set them there; see its scripts/mac-signing.js):
+#   Mac signing, required: without them macOS blocks the download on every other Mac (0.9.22 shipped that way), so
+#   the Mac build now stops instead. The app repo's scripts/set-mac-signing-secrets.command sets all six here:
 #   MAC_CERT_P12_BASE64, MAC_CERT_PASSWORD, MAC_SIGN_IDENTITY, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
 #
 # Runs only on a push to this repo or a manual run, never for pull requests, so the secrets aren't exposed.
@@ -118,6 +119,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Check the Mac signing secrets are set
+        if: env.MAC_CERT_P12_BASE64 == ''
+        shell: bash
+        run: |
+          echo "::error::MAC_CERT_P12_BASE64 and the other Mac signing secrets aren't set in this repo, so the Mac download would be unsigned and blocked by macOS. Run scripts/set-mac-signing-secrets.command from the app repo (needs admin here)."
+          exit 1
       - name: Import the Developer ID certificate
         if: env.MAC_CERT_P12_BASE64 != ''
         shell: bash
